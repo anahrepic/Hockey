@@ -1,0 +1,1200 @@
+00001000 Starting Address
+Assembler used: EASy68K Editor/Assembler v5.9.0
+Created On: 2/26/2025 2:10:39 PM
+
+00000000  =00001000                  1  PROGRAM EQU     $1000
+00000000  =00002000                  2  DATA    EQU     $2000
+00000000                             3  
+00002000                             4          ORG     DATA
+00002000                             5  ; pamtimo pozicije svega
+00002000                             6  GOLMANL DS.W    2
+00002004                             7  NAPADL  DS.W    2
+00002008                             8  GOLMAND DS.W    2
+0000200C                             9  NAPADD  DS.W    2
+00002010                            10  LOPTICA DS.W    2
+00002014                            11  SMJER   DS.B    2
+00002016                            12  BRZINA  DS.W    1
+00002018                            13  BOJA    DS.L    1
+0000201C                            14  N       DS.W    1
+0000201E                            15  POBJEDA DS.W    1       
+00002020                            16  ; pamtimo score
+00002020= 4C 3A 20 30 00            17  SCOREL  DC.B    'L: 0', 0
+00002025= 44 3A 20 30 00            18  SCORED  DC.B    'D: 0', 0
+0000202A                            19  ; poruke za pocetak igre
+0000202A= 44 6F 62 72 6F 64 ...     20  POZ     DC.B    'Dobrodosli u igru Hockey!', 0  
+00002044= 53 76 61 6B 69 20 ...     21  UPUTE1  DC.B    'Svaki igrac ima po dvije ploce.', 0 
+00002064= 4C 69 6A 65 76 69 ...     22  UPUTE2  DC.B    'Lijevi igrac pokrece svoje ploce tipkama Q, A, W i S', 0 ; 52 znaka, najvise
+00002099= 61 20 64 65 73 6E ...     23  UPUTE3  DC.B    'a desni igrac brojevima 8, 5, 9 i 6 na numpadu.', 0
+000020C9= 5A 61 20 70 6F 63 ...     24  KRENI   DC.B    'Za pocetak igre pritisnite tipku razmaka (spacebar).', 0
+000020FE= 20 20 20 20 20 20 ...     25  BRISI   DC.B    '                                                     ', 0 ; za brisanje
+00002134= 50 6F 62 6A 65 64 ...     26  POBJEDNIKL DC.B 'Pobjednik je lijevi igrac!', 0
+0000214F= 50 6F 62 6A 65 64 ...     27  POBJEDNIKD DC.B 'Pobjednik je desni igrac!', 0
+00002169= 55 6B 6F 6C 69 6B ...     28  PONOVNO DC.B    'Ukoliko zelite igrati ponovno, pritisnite spacebar!', 0
+0000219D                            29  
+00001000                            30          ORG     PROGRAM
+00001000  4EB9 0000198A             31  START:  JSR     CISTIZASLON
+00001006  4EB9 000017AC             32          JSR     POCETNIZASLON
+0000100C  4EB9 000010F4             33          JSR     POZADINA
+00001012  4EB9 000011BE             34          JSR     CRTAJCENTAR
+00001018                            35          ; postavljanje pocetne brzine LOPTICE = 2 milisekunde (prije sljedeceg pomaka)
+00001018  31FC 0003 2016            36          MOVE.W  #3, BRZINA
+0000101E                            37          ; postavljanje boje loptice 
+0000101E  21FC 00FFFFFF 2018        38          MOVE.L  #$00FFFFFF, BOJA
+00001026                            39          ; nakon 5 pomaka boja se vraca u normalu
+00001026  31FC 0000 201C            40          MOVE.W  #0, N
+0000102C                            41          
+0000102C                            42          ; stavi nulu u D7
+0000102C  3E3C 0000                 43          MOVE.W  #0, D7
+00001030                            44          
+00001030                            45          ; iskljuci keyboard echo
+00001030  123C 0000                 46          MOVE.B  #0, D1
+00001034  103C 000C                 47          MOVE.B  #12, D0
+00001038  4E4F                      48          TRAP    #15
+0000103A                            49                  
+0000103A                            50          ; postavljanje pocetnih pozicija
+0000103A  207C 00002000             51          MOVEA.L #GOLMANL, A0
+00001040                            52          
+00001040                            53          ; lijevi golman
+00001040  30FC 005F                 54          MOVE.W  #95, (A0)+
+00001044  30FC 007E                 55          MOVE.W  #126, (A0)+
+00001048                            56          ; lijevi napadac
+00001048  30FC 00C7                 57          MOVE.W  #199, (A0)+
+0000104C  30FC 00E6                 58          MOVE.W  #230, (A0)+
+00001050                            59          ; desni golman
+00001050  30FC 021F                 60          MOVE.W  #543, (A0)+
+00001054  30FC 00E6                 61          MOVE.W  #230, (A0)+
+00001058                            62          ; desni napadac
+00001058  30FC 01B7                 63          MOVE.W  #439, (A0)+
+0000105C  30FC 009A                 64          MOVE.W  #154, (A0)+
+00001060                            65          ; loptica 
+00001060  30FC 0140                 66          MOVE.W  #320, (A0)+
+00001064  30BC 00F0                 67          MOVE.W  #240, (A0)
+00001068                            68          
+00001068                            69          ; crtanje elemenata igre + odredivanje slucajnog smjera loptice
+00001068  207C 00002000             70          MOVEA.L #GOLMANL, A0
+0000106E  4EB9 00001208             71          JSR     CRTAJJEDNUPLOCU
+00001074  207C 00002004             72          MOVEA.L #NAPADL, A0
+0000107A  4EB9 00001208             73          JSR     CRTAJJEDNUPLOCU
+00001080  207C 0000200C             74          MOVEA.L #NAPADD, A0
+00001086  4EB9 00001208             75          JSR     CRTAJJEDNUPLOCU
+0000108C  207C 00002008             76          MOVEA.L #GOLMAND, A0
+00001092  4EB9 00001208             77          JSR     CRTAJJEDNUPLOCU
+00001098  4EB9 00001308             78          JSR     CRTAJLOPTICU
+0000109E  4EB9 0000135C             79          JSR     STAVISMJERLOPTICE
+000010A4                            80                  
+000010A4                            81          ; vrijeme pomaka spremamo u D5 za usporedbu s trenutnim vremenom
+000010A4  103C 0008                 82          MOVE.B  #8, D0
+000010A8  4E4F                      83          TRAP    #15
+000010AA  2A01                      84          MOVE.L  D1, D5
+000010AC                            85          
+000010AC                            86          
+000010AC                            87  INFPETLJA:
+000010AC                            88          ; provjerimo je li proslo BRZINA stotinki od vremena proslog pomaka (ono pise u D5)
+000010AC  103C 0008                 89          MOVE.B  #8, D0
+000010B0  4E4F                      90          TRAP    #15
+000010B2  9285                      91          SUB.L   D5, D1
+000010B4  B278 2016                 92          CMP.W   BRZINA, D1
+000010B8  63F2                      93          BLS     INFPETLJA       ; D1 <= brzina -> nije proslo dovoljno vremena
+000010BA                            94          ;ako je proslo dovoljno vremena, onda ga moramo spremiti za buducu usporedbu!
+000010BA  103C 0008                 95          MOVE.B  #8, D0
+000010BE  4E4F                      96          TRAP    #15
+000010C0  2A01                      97          MOVE.L  D1, D5
+000010C2                            98          
+000010C2  4EB9 000018C4             99          JSR     SCOREISPIS
+000010C8  4EB9 000012B2            100          JSR     BRISILOPTICU
+000010CE  4EB9 000013AE            101          JSR     POMAKNILOPTICU
+000010D4  4EB9 00001308            102          JSR     CRTAJLOPTICU
+000010DA                           103          
+000010DA  4201                     104  DALJE:  CLR.B   D1
+000010DC                           105          ; inace, spremimo se za sljedecu iteraciju petlje + updateamo lopticu
+000010DC                           106          ; provjera je li pritisnuta NEKA tipka
+000010DC  103C 0007                107          MOVE.B  #7, D0
+000010E0  4E4F                     108          TRAP    #15
+000010E2  4A01                     109          TST.B   D1
+000010E4                           110          ; ako je tipka pritisnuta, obradimo
+000010E4  67C6                     111          BEQ     INFPETLJA
+000010E6  4EB9 000015C2            112          JSR     OBRADIULAZ
+000010EC                           113          
+000010EC  60BE                     114          BRA     INFPETLJA
+000010EE                           115  
+000010EE  103C 0009                116  KRAJ:   MOVE.B  #9,D0
+000010F2  4E4F                     117          TRAP    #15
+000010F4                           118          
+000010F4                           119  *-----------------------------------------------------------------------------------------*
+000010F4                           120  ; pomicanje blokova izvodimo pritiskom tipki na tipkovnici
+000010F4                           121  ; mozemo koristiti numpad:
+000010F4                           122  ; LIJEVI IGRAC: Q (GORE), A (DOLJE) za golmana, W (GORE), S (DOLJE) za napadaca
+000010F4                           123  ; DESNI IGRAC: 9 (GORE), 6 (DOLJE) za golmana, 8 (GORE) , 5 (DOLJE) za napadaca
+000010F4                           124  
+000010F4                           125  ; ako stisnemo Q, W, 8 ili 9 (NA NUMPADU), to je -1 po y (Y RASTE PREMA DOLJE)
+000010F4                           126  ; ako stisnemo A, S, 4 ILI 6 (NA NUMPADU), to je +1 po y 
+000010F4                           127  *-----------------------------------------------------------------------------------------*
+000010F4                           128  ; podrutina za crtanje pozadine
+000010F4                           129  POZADINA:
+000010F4                           130          ; olovka za ispunu, charcoal boje #36454F
+000010F4  223C 004F4536            131          MOVE.L  #$004F4536, D1
+000010FA  103C 0051                132          MOVE.B  #81, D0
+000010FE  4E4F                     133          TRAP    #15
+00001100                           134          
+00001100                           135          ; ispuna
+00001100  323C 000F                136          MOVE.W  #15, D1
+00001104  343C 000F                137          MOVE.W  #15, D2
+00001108  103C 0059                138          MOVE.B  #89, D0
+0000110C  4E4F                     139          TRAP    #15
+0000110E  4EB9 00001116            140          JSR     CRTAJOBRUB
+00001114  4E75                     141          RTS
+00001116                           142          
+00001116                           143  CRTAJOBRUB:
+00001116                           144  
+00001116                           145          ; boja olovke za obrub - BIJELA
+00001116  223C 00FFFFFF            146          MOVE.L  #$00FFFFFF, D1
+0000111C  103C 0050                147          MOVE.B  #80, D0
+00001120  4E4F                     148          TRAP    #15
+00001122                           149          
+00001122                           150          ;boja filla
+00001122  223C 00FFFFFF            151          MOVE.L  #$00FFFFFF, D1
+00001128  103C 0051                152          MOVE.B  #81, D0
+0000112C  4E4F                     153          TRAP    #15
+0000112E                           154  
+0000112E                           155          ; debljina olovke za obrub 10px
+0000112E  123C 000A                156          MOVE.B  #10, D1
+00001132  103C 005D                157          MOVE.B  #93, D0
+00001136  4E4F                     158          TRAP    #15
+00001138                           159                          
+00001138                           160          ; crtanje 6 pravokutnika koji predstavljaju obrub
+00001138  323C 0000                161          MOVE.W  #0, D1
+0000113C  343C 0000                162          MOVE.W  #0, D2
+00001140  363C 000A                163          MOVE.W  #10, D3
+00001144  383C 0078                164          MOVE.W  #120, D4
+00001148  103C 0057                165          MOVE.B  #87, D0
+0000114C  4E4F                     166          TRAP    #15
+0000114E                           167          
+0000114E  323C 0000                168          MOVE.W  #0, D1
+00001152  343C 0168                169          MOVE.W  #360, D2
+00001156  363C 000A                170          MOVE.W  #10, D3
+0000115A  383C 01E0                171          MOVE.W  #480, D4
+0000115E  103C 0057                172          MOVE.B  #87, D0
+00001162  4E4F                     173          TRAP    #15
+00001164                           174          
+00001164  323C 0276                175          MOVE.W  #630, D1
+00001168  343C 0000                176          MOVE.W  #0, D2
+0000116C  363C 0280                177          MOVE.W  #640, D3
+00001170  383C 0078                178          MOVE.W  #120, D4
+00001174  103C 0057                179          MOVE.B  #87, D0
+00001178  4E4F                     180          TRAP    #15
+0000117A                           181          
+0000117A  323C 0276                182          MOVE.W  #630, D1
+0000117E  343C 0168                183          MOVE.W  #360, D2
+00001182  363C 0280                184          MOVE.W  #640, D3
+00001186  383C 01E0                185          MOVE.W  #480, D4
+0000118A  103C 0057                186          MOVE.B  #87, D0
+0000118E  4E4F                     187          TRAP    #15
+00001190                           188  
+00001190  323C 0000                189          MOVE.W  #0, D1
+00001194  343C 0000                190          MOVE.W  #0, D2
+00001198  363C 0280                191          MOVE.W  #640, D3
+0000119C  383C 000A                192          MOVE.W  #10, D4
+000011A0  103C 0057                193          MOVE.B  #87, D0
+000011A4  4E4F                     194          TRAP    #15
+000011A6                           195          
+000011A6  323C 0000                196          MOVE.W  #0, D1
+000011AA  343C 01D6                197          MOVE.W  #470, D2
+000011AE  363C 0280                198          MOVE.W  #640, D3
+000011B2  383C 01E0                199          MOVE.W  #480, D4
+000011B6  103C 0057                200          MOVE.B  #87, D0
+000011BA  4E4F                     201          TRAP    #15
+000011BC                           202          
+000011BC  4E75                     203          RTS
+000011BE                           204          
+000011BE                           205  CRTAJCENTAR:    
+000011BE                           206          ; boja olovke za obrub - BIJELA
+000011BE  223C 00FFFFFF            207          MOVE.L  #$00FFFFFF, D1
+000011C4  103C 0050                208          MOVE.B  #80, D0
+000011C8  4E4F                     209          TRAP    #15
+000011CA                           210          
+000011CA                           211          ;boja filla
+000011CA  223C 00FFFFFF            212          MOVE.L  #$00FFFFFF, D1
+000011D0  103C 0051                213          MOVE.B  #81, D0
+000011D4  4E4F                     214          TRAP    #15
+000011D6                           215  
+000011D6                           216          ; debljina olovke za obrub 10px
+000011D6  123C 000A                217          MOVE.B  #10, D1
+000011DA  103C 005D                218          MOVE.B  #93, D0
+000011DE  4E4F                     219          TRAP    #15
+000011E0                           220  
+000011E0                           221          ; crtanje isprekidane linije na centru
+000011E0  323C 013D                222          MOVE.W  #317, D1
+000011E4  343C 0000                223          MOVE.W  #0, D2
+000011E8  363C 0143                224          MOVE.W  #323, D3
+000011EC  383C 0010                225          MOVE.W  #16, D4
+000011F0  3C3C 000F                226          MOVE.W  #15, D6 ; brojac
+000011F4                           227  
+000011F4  103C 0057                228  LINIJA: MOVE.B  #87, D0
+000011F8  4E4F                     229          TRAP    #15
+000011FA  0642 0020                230          ADD.W   #32, D2
+000011FE  0644 0020                231          ADD.W   #32, D4
+00001202  5346                     232          SUBQ    #1, D6
+00001204  66EE                     233          BNE     LINIJA
+00001206                           234          
+00001206  4E75                     235          RTS
+00001208                           236                  
+00001208                           237  *-----------------------------------------------------------------------------------------*
+00001208                           238  ; podrutina za crtanje TOCNO JEDNE PLOCE, adresa pozicije poslana je preko A0
+00001208                           239  CRTAJJEDNUPLOCU:
+00001208                           240          ; boja olovke za ploce - BIJELA
+00001208  223C 00FFFFFF            241          MOVE.L  #$00FFFFFF, D1
+0000120E  103C 0050                242          MOVE.B  #80, D0
+00001212  4E4F                     243          TRAP    #15
+00001214                           244          
+00001214                           245          ;boja filla
+00001214  223C 00FFFFFF            246          MOVE.L  #$00FFFFFF, D1
+0000121A  103C 0051                247          MOVE.B  #81, D0
+0000121E  4E4F                     248          TRAP    #15
+00001220                           249  
+00001220                           250          ; debljina olovke za ploce 10px
+00001220  123C 000A                251          MOVE.B  #10, D1
+00001224  103C 005D                252          MOVE.B  #93, D0
+00001228  4E4F                     253          TRAP    #15
+0000122A                           254          
+0000122A                           255          ; crtanje
+0000122A  3218                     256          MOVE.W  (A0)+, D1
+0000122C  3418                     257          MOVE.W  (A0)+, D2
+0000122E  3601                     258          MOVE.W  D1, D3
+00001230  5043                     259          ADD.W   #8, D3
+00001232  3802                     260          MOVE.W  D2, D4
+00001234  0644 003C                261          ADD.W   #60, D4
+00001238  103C 0057                262          MOVE.B  #87, D0
+0000123C  4E4F                     263          TRAP    #15
+0000123E                           264          
+0000123E  4E75                     265          RTS
+00001240                           266          
+00001240                           267  *------------------------------------------------------------------------------------------*
+00001240                           268  ; podrutine za brisanje "traga" koji ostaje za plocama kad se pomicu
+00001240                           269  ; dvije su, ovisno o tome ide li pomak prema gore ili prema dolje
+00001240                           270  ; adresa STARIH koordinata stize preko A0
+00001240                           271  
+00001240                           272  POMAKDOLJECISTI:
+00001240                           273          ; boja olovke - CHARCOAL
+00001240  223C 004F4536            274          MOVE.L  #$004F4536, D1
+00001246  103C 0050                275          MOVE.B  #80, D0
+0000124A  4E4F                     276          TRAP    #15
+0000124C                           277          
+0000124C                           278          ;boja filla
+0000124C  223C 004F4536            279          MOVE.L  #$004F4536, D1
+00001252  103C 0051                280          MOVE.B  #81, D0
+00001256  4E4F                     281          TRAP    #15
+00001258                           282  
+00001258                           283          ; debljina olovke, ista kao i za ploce, 10px
+00001258  123C 000A                284          MOVE.B  #10, D1
+0000125C  103C 005D                285          MOVE.B  #93, D0
+00001260  4E4F                     286          TRAP    #15
+00001262                           287          
+00001262  3218                     288          MOVE.W  (A0)+, D1
+00001264  3410                     289          MOVE.W  (A0), D2
+00001266  3601                     290          MOVE.W  D1, D3
+00001268  5043                     291          ADD.W   #8, D3
+0000126A  3802                     292          MOVE.W  D2, D4
+0000126C  5A44                     293          ADDQ    #5, D4
+0000126E  103C 0057                294          MOVE.B  #87, D0
+00001272  4E4F                     295          TRAP    #15
+00001274                           296          
+00001274  4E75                     297          RTS
+00001276                           298          
+00001276                           299  POMAKGORECISTI:
+00001276                           300          ; boja olovke - CHARCOAL
+00001276  223C 004F4536            301          MOVE.L  #$004F4536, D1
+0000127C  103C 0050                302          MOVE.B  #80, D0
+00001280  4E4F                     303          TRAP    #15
+00001282                           304          
+00001282                           305          ;boja filla
+00001282  223C 004F4536            306          MOVE.L  #$004F4536, D1
+00001288  103C 0051                307          MOVE.B  #81, D0
+0000128C  4E4F                     308          TRAP    #15
+0000128E                           309  
+0000128E                           310          ; debljina olovke, ista kao i za ploce, 10px
+0000128E  123C 000A                311          MOVE.B  #10, D1
+00001292  103C 005D                312          MOVE.B  #93, D0
+00001296  4E4F                     313          TRAP    #15
+00001298                           314          
+00001298  3218                     315          MOVE.W  (A0)+, D1
+0000129A  3410                     316          MOVE.W  (A0), D2
+0000129C  3601                     317          MOVE.W  D1, D3
+0000129E  5043                     318          ADD.W   #8, D3
+000012A0                           319          
+000012A0  3802                     320          MOVE.W  D2, D4
+000012A2  0644 003C                321          ADD.W   #60, D4
+000012A6  0642 0037                322          ADD.W   #55, D2
+000012AA  103C 0057                323          MOVE.B  #87, D0
+000012AE  4E4F                     324          TRAP    #15
+000012B0                           325          
+000012B0  4E75                     326          RTS
+000012B2                           327  
+000012B2                           328  *-----------------------------------------------------------------------------------------*
+000012B2                           329  ; podrutina za brisanje loptice prije crtanja nove loptice
+000012B2                           330  BRISILOPTICU:
+000012B2                           331          ; boja olovke - CHARCOAL
+000012B2  223C 004F4536            332          MOVE.L  #$004F4536, D1
+000012B8  103C 0050                333          MOVE.B  #80, D0
+000012BC  4E4F                     334          TRAP    #15
+000012BE                           335          
+000012BE                           336          ;boja filla
+000012BE  223C 004F4536            337          MOVE.L  #$004F4536, D1
+000012C4  103C 0051                338          MOVE.B  #81, D0
+000012C8  4E4F                     339          TRAP    #15
+000012CA                           340  
+000012CA                           341          ; debljina olovke, ista kao i za lopticu, 5px
+000012CA  123C 0005                342          MOVE.B  #5, D1
+000012CE  103C 005D                343          MOVE.B  #93, D0
+000012D2  4E4F                     344          TRAP    #15
+000012D4                           345          
+000012D4  207C 00002010            346          MOVEA.L #LOPTICA, A0
+000012DA  3218                     347          MOVE.W  (A0)+, D1
+000012DC  3410                     348          MOVE.W  (A0), D2
+000012DE  3601                     349          MOVE.W  D1, D3
+000012E0  5E43                     350          ADD.W   #7, D3
+000012E2                           351          
+000012E2  3802                     352          MOVE.W  D2, D4
+000012E4  5A44                     353          ADD.W   #5, D4
+000012E6  103C 0057                354          MOVE.B  #87, D0
+000012EA  4E4F                     355          TRAP    #15
+000012EC                           356          
+000012EC                           357          ; treba li opet crtati centar?
+000012EC  207C 00002010            358          MOVEA.L #LOPTICA, A0
+000012F2  0C50 012C                359          CMPI    #300, (A0)
+000012F6  6500 000E                360          BCS     KRAJBRISANJA
+000012FA  0C50 014A                361          CMPI    #330, (A0)
+000012FE  6200 0006                362          BHI     KRAJBRISANJA
+00001302  4EB8 11BE                363          JSR     CRTAJCENTAR
+00001306                           364  
+00001306                           365  KRAJBRISANJA:   
+00001306  4E75                     366          RTS
+00001308                           367  
+00001308                           368  *-----------------------------------------------------------------------------------------*
+00001308                           369  ; podrutina za crtanje loptice
+00001308                           370  
+00001308                           371  CRTAJLOPTICU:
+00001308  5278 201C                372          ADD.W   #1, N
+0000130C  0C78 0014 201C           373          CMP.W   #20, N
+00001312  6600 0010                374          BNE     BEZPROMJENE
+00001316  21FC 00FFFFFF 2018       375          MOVE.L  #$00FFFFFF, BOJA
+0000131E  31FC 0000 201C           376          MOVE.W  #0, N
+00001324                           377  BEZPROMJENE:
+00001324                           378          ; boja olovke za lopticu
+00001324  2238 2018                379          MOVE.L  BOJA, D1
+00001328  103C 0050                380          MOVE.B  #80, D0
+0000132C  4E4F                     381          TRAP    #15
+0000132E                           382          
+0000132E                           383          ;boja filla
+0000132E  2238 2018                384          MOVE.L  BOJA, D1
+00001332  103C 0051                385          MOVE.B  #81, D0
+00001336  4E4F                     386          TRAP    #15
+00001338                           387          
+00001338                           388          ; debljina olovke za lopticu 5px
+00001338  123C 0005                389          MOVE.B  #5, D1
+0000133C  103C 005D                390          MOVE.B  #93, D0
+00001340  4E4F                     391          TRAP    #15
+00001342                           392          
+00001342                           393          ; crtanje loptice (5x7 px)
+00001342  207C 00002010            394          MOVEA.L #LOPTICA, A0
+00001348  3218                     395          MOVE.W  (A0)+, D1
+0000134A  3410                     396          MOVE.W  (A0), D2
+0000134C  3601                     397          MOVE.W  D1, D3
+0000134E  5E43                     398          ADDQ    #7, D3
+00001350  3802                     399          MOVE.W  D2, D4
+00001352  5A44                     400          ADDQ    #5, D4
+00001354  303C 0057                401          MOVE.W  #87, D0
+00001358  4E4F                     402          TRAP    #15
+0000135A                           403  
+0000135A  4E75                     404          RTS
+0000135C                           405  
+0000135C                           406  *---------------------------------------------------------------------------------------*
+0000135C                           407  ; podrutina za postavljanje smjera loptice
+0000135C                           408  STAVISMJERLOPTICE:
+0000135C                           409          ; slucajan smjer kretanja
+0000135C  207C 00002014            410          MOVEA.L #SMJER, A0
+00001362  103C 0008                411          MOVE.B  #8, D0
+00001366  4E4F                     412          TRAP    #15
+00001368                           413          
+00001368                           414          
+00001368  C2BC 0000FFFF            415          AND.L   #$FFFF, D1
+0000136E  82FC 0002                416          DIVU    #2, D1
+00001372                           417  
+00001372  4841                     418          SWAP    D1
+00001374                           419          ;0 u donjem bajtu -> x negativan
+00001374                           420          ;1 u donjem bajtu -> x pozitivan
+00001374  B23C 0000                421          CMP.B   #0, D1
+00001378  6700 000A                422          BEQ     NULAX
+0000137C  10FC 0001                423          MOVE.B  #1, (A0)+
+00001380  6000 0006                424          BRA     DRUGA   
+00001384                           425          
+00001384  10FC 00FF                426  NULAX:  MOVE.B  #-1, (A0)+
+00001388                           427          
+00001388                           428          ; sad isto za y
+00001388  103C 0008                429  DRUGA:  MOVE.B  #8, D0
+0000138C  4E4F                     430          TRAP    #15
+0000138E  C2BC 0000FFFF            431          AND.L   #$FFFF, D1
+00001394  82FC 0002                432          DIVU    #2, D1
+00001398  4841                     433          SWAP    D1
+0000139A  B23C 0000                434          CMP.B   #0, D1
+0000139E  6700 0008                435          BEQ     NULAY
+000013A2  10BC 0001                436          MOVE.B  #1, (A0)
+000013A6  4E75                     437          RTS
+000013A8                           438          
+000013A8  10BC 00FF                439  NULAY:  MOVE.B  #-1, (A0)
+000013AC                           440          
+000013AC  4E75                     441          RTS
+000013AE                           442          
+000013AE                           443  *------------------------------------------------------------------------------------------*
+000013AE                           444  ; podrutina za promjenu pozicije loptice (uzimamo u obzir i moguce sudare)
+000013AE                           445  POMAKNILOPTICU:
+000013AE                           446  ; provjeravamo je li doslo do gola
+000013AE                           447  GOLPRVAPROVJERA:
+000013AE  207C 00002012            448          MOVEA.L #LOPTICA+2, A0
+000013B4  0C50 0168                449          CMPI    #360, (A0)
+000013B8  6200 002E                450          BHI     PROVJERASUDARA  ; sigurno nema gola
+000013BC  0C50 0078                451          CMPI    #120, (A0)
+000013C0  6500 0026                452          BCS     PROVJERASUDARA  ; sigurno nema gola
+000013C4                           453          
+000013C4                           454  LIJEVIGOLPROVJERA:
+000013C4  207C 00002010            455          MOVEA.L #LOPTICA, A0
+000013CA  0C50 0014                456          CMPI    #20, (A0)
+000013CE  6200 0006                457          BHI     DESNIGOLPROVJERA        
+000013D2                           458          ; gol!
+000013D2  6000 0568                459          BRA     OBRADIGOLLIJEVI 
+000013D6                           460  
+000013D6                           461  DESNIGOLPROVJERA:
+000013D6  207C 00002010            462          MOVEA.L #LOPTICA, A0
+000013DC  0C50 0258                463          CMPI    #600, (A0)
+000013E0  6500 0006                464          BCS     PROVJERASUDARA          
+000013E4                           465          ; gol!
+000013E4  6000 0534                466          BRA     OBRADIGOLDESNI  
+000013E8                           467  
+000013E8                           468  
+000013E8                           469  ; provjeravamo sudare s plocama
+000013E8                           470  PROVJERASUDARA:
+000013E8  4A07                     471          TST.B   D7
+000013EA                           472          ; ako je 0, mozes raditi provjere
+000013EA  6600 0112                473          BNE     POMAKNILOPTICUX
+000013EE                           474  ; prvo, lijevi golman
+000013EE                           475  LGOLMANX:
+000013EE  207C 00002010            476          MOVEA.L #LOPTICA, A0
+000013F4  227C 00002000            477          MOVEA.L #GOLMANL, A1    
+000013FA  3C11                     478          MOVE.W  (A1), D6
+000013FC  0446 0015                479          SUB.W   #$15,   D6
+00001400  BC50                     480          CMP.W   (A0), D6                ; ako ne nademo nista sumnjivo, idemo na iducu provjeru
+00001402  6200 002E                481          BHI     LNAPADX
+00001406  0646 0025                482          ADD.W   #37, D6
+0000140A  BC50                     483          CMP.W   (A0), D6
+0000140C  6500 0024                484          BCS     LNAPADX
+00001410                           485  LGOLMANY:
+00001410  207C 00002012            486          MOVEA.L #LOPTICA+2, A0
+00001416  227C 00002002            487          MOVEA.L #GOLMANL+2, A1
+0000141C  3C11                     488          MOVE.W  (A1), D6
+0000141E  0446 0010                489          SUB.W   #$10, D6
+00001422  BC50                     490          CMP.W   (A0), D6
+00001424  6200 000C                491          BHI     LNAPADX
+00001428  0646 0065                492          ADD.W   #$65, D6
+0000142C  BC50                     493          CMP.W   (A0), D6
+0000142E  6400 014A                494          BCC     PROMJENAOBASMJERA
+00001432                           495          
+00001432                           496  LNAPADX:
+00001432  207C 00002010            497          MOVEA.L #LOPTICA, A0
+00001438  227C 00002004            498          MOVEA.L #NAPADL, A1     
+0000143E  3C11                     499          MOVE.W  (A1), D6
+00001440  0446 0015                500          SUB.W   #$15,   D6
+00001444  BC50                     501          CMP.W   (A0), D6                ; ako ne nademo nista sumnjivo, idemo na iducu provjeru
+00001446  6200 002E                502          BHI     DNAPADX
+0000144A  0646 0025                503          ADD.W   #37, D6
+0000144E  BC50                     504          CMP.W   (A0), D6
+00001450  6500 0024                505          BCS     DNAPADX
+00001454                           506  
+00001454                           507          
+00001454                           508  LNAPADY:
+00001454  207C 00002012            509          MOVEA.L #LOPTICA+2, A0
+0000145A  227C 00002006            510          MOVEA.L #NAPADL+2, A1
+00001460  3C11                     511          MOVE.W  (A1), D6
+00001462  0446 0010                512          SUB.W   #$10, D6
+00001466  BC50                     513          CMP.W   (A0), D6
+00001468  6200 000C                514          BHI     DNAPADX
+0000146C  0646 0065                515          ADD.W   #$65, D6
+00001470  BC50                     516          CMP.W   (A0), D6
+00001472  6400 0106                517          BCC     PROMJENAOBASMJERA
+00001476                           518          
+00001476                           519  
+00001476                           520  DNAPADX:
+00001476  207C 00002010            521          MOVEA.L #LOPTICA, A0
+0000147C  227C 0000200C            522          MOVEA.L #NAPADD, A1     
+00001482  3C11                     523          MOVE.W  (A1), D6
+00001484  0446 0015                524          SUB.W   #$15,   D6
+00001488  BC50                     525          CMP.W   (A0), D6                ; ako ne nademo nista sumnjivo, idemo na iducu provjeru
+0000148A  6200 002E                526          BHI     DGOLMANX
+0000148E  0646 0028                527          ADD.W   #40, D6
+00001492  BC50                     528          CMP.W   (A0), D6
+00001494  6500 0024                529          BCS     DGOLMANX
+00001498                           530  
+00001498                           531  DNAPADY:
+00001498  207C 00002012            532          MOVEA.L #LOPTICA+2, A0
+0000149E  227C 0000200E            533          MOVEA.L #NAPADD+2, A1
+000014A4  3C11                     534          MOVE.W  (A1), D6
+000014A6  0446 0010                535          SUB.W   #$10, D6
+000014AA  BC50                     536          CMP.W   (A0), D6
+000014AC  6200 000C                537          BHI     DGOLMANX
+000014B0  0646 0065                538          ADD.W   #$65, D6
+000014B4  BC50                     539          CMP.W   (A0), D6
+000014B6  6400 00C2                540          BCC     PROMJENAOBASMJERA
+000014BA                           541  
+000014BA                           542  DGOLMANX:
+000014BA  207C 00002010            543          MOVEA.L #LOPTICA, A0
+000014C0  227C 00002008            544          MOVEA.L #GOLMAND, A1    
+000014C6  3C11                     545          MOVE.W  (A1), D6
+000014C8  0446 0015                546          SUB.W   #$15,   D6
+000014CC  BC50                     547          CMP.W   (A0), D6                ; ako ne nademo nista sumnjivo, idemo na iducu provjeru
+000014CE  6200 002E                548          BHI     POMAKNILOPTICUX
+000014D2  0646 0028                549          ADD.W   #40, D6
+000014D6  BC50                     550          CMP.W   (A0), D6
+000014D8  6500 0024                551          BCS     POMAKNILOPTICUX
+000014DC                           552  
+000014DC                           553  DGOLMANY:
+000014DC  207C 00002012            554          MOVEA.L #LOPTICA+2, A0
+000014E2  227C 0000200A            555          MOVEA.L #GOLMAND+2, A1
+000014E8  3C11                     556          MOVE.W  (A1), D6
+000014EA  0446 0010                557          SUB.W   #$10, D6
+000014EE  BC50                     558          CMP.W   (A0), D6
+000014F0  6200 000C                559          BHI     POMAKNILOPTICUX
+000014F4  0646 0065                560          ADD.W   #$65, D6
+000014F8  BC50                     561          CMP.W   (A0), D6
+000014FA  6400 007E                562          BCC     PROMJENAOBASMJERA
+000014FE                           563          
+000014FE                           564  
+000014FE                           565  POMAKNILOPTICUX:
+000014FE  4A07                     566          TST.B   D7
+00001500  6700 0004                567          BEQ     NEODUZIMAJ
+00001504  5307                     568          SUBI.B  #1, D7  
+00001506                           569  NEODUZIMAJ:
+00001506  207C 00002014            570          MOVEA.L #SMJER, A0
+0000150C  1C10                     571          MOVE.B  (A0), D6
+0000150E  6B00 0014                572          BMI     NEGX
+00001512                           573          
+00001512  207C 00002010            574  POZX:   MOVEA.L #LOPTICA, A0
+00001518                           575          ; provjera smije li ici tu
+00001518  0C50 0262                576          CMP.W   #610, (A0)
+0000151C                           577          ; ako ne, mijenjamo x
+0000151C  6400 0048                578          BCC     PROMJENAX               
+00001520  6000 0078                579          BRA     DOZVOLJENPOMAKPOZX
+00001524                           580  
+00001524                           581  
+00001524  207C 00002010            582  NEGX:   MOVEA.L #LOPTICA, A0
+0000152A                           583          ; provjera smije li ici tu
+0000152A  0C50 0014                584          CMP.W   #20, (A0)
+0000152E  6300 0036                585          BLS     PROMJENAX               
+00001532                           586          ; ako da, prijedimo na provjere sudara s plocama
+00001532  6000 0070                587          BRA     DOZVOLJENPOMAKNEGX
+00001536                           588          
+00001536                           589  
+00001536                           590  POMAKNILOPTICUY:
+00001536  207C 00002015            591          MOVEA.L #SMJER+1, A0    ; neparna adresa, pazi!
+0000153C  1C10                     592          MOVE.B  (A0), D6
+0000153E  6B00 0014                593          BMI     NEGY
+00001542                           594          
+00001542  207C 00002012            595  POZY:   MOVEA.L #LOPTICA+2, A0
+00001548                           596          ; provjera smije li ici tu
+00001548  0C50 01C7                597          CMP.W   #455, (A0)
+0000154C  6400 0022                598          BCC     PROMJENAY
+00001550  6000 005C                599          BRA     DOZVOLJENPOMAKPOZY
+00001554                           600                          
+00001554  207C 00002012            601  NEGY:   MOVEA.L #LOPTICA+2, A0
+0000155A                           602          ; provjera smije li ici tu
+0000155A  0C50 0014                603          CMP.W   #20, (A0)
+0000155E  6300 0010                604          BLS     PROMJENAY
+00001562                           605          ; ako da, pomaknemo se
+00001562  6000 0054                606          BRA DOZVOLJENPOMAKNEGY
+00001566                           607                  
+00001566                           608  PROMJENAX:
+00001566  207C 00002014            609          MOVEA.L #SMJER, A0
+0000156C  4410                     610          NEG.B   (A0)
+0000156E  60C6                     611          BRA     POMAKNILOPTICUY
+00001570                           612          
+00001570                           613  PROMJENAY:
+00001570  207C 00002015            614          MOVEA.L #SMJER+1, A0
+00001576  4410                     615          NEG.B   (A0)
+00001578  4E75                     616          RTS
+0000157A                           617          
+0000157A                           618  PROMJENAOBASMJERA:
+0000157A  6782                     619          BEQ     POMAKNILOPTICUX
+0000157C  207C 00002014            620          MOVEA.L #SMJER, A0
+00001582  4410                     621          NEG.B   (A0)
+00001584  207C 00002015            622          MOVEA.L #SMJER+1, A0
+0000158A  4410                     623          NEG.B   (A0)
+0000158C  1E3C 000A                624          MOVE.B  #10, D7
+00001590  21FC 00A0E7E8 2018       625          MOVE.L  #$00A0E7E8, BOJA
+00001598  4E75                     626          RTS
+0000159A                           627                          
+0000159A                           628  DOZVOLJENPOMAKPOZX:
+0000159A  207C 00002010            629          MOVEA.L #LOPTICA, A0
+000015A0  5650                     630          ADDQ    #$3, (A0)
+000015A2  6092                     631          BRA     POMAKNILOPTICUY
+000015A4                           632          
+000015A4                           633  DOZVOLJENPOMAKNEGX:
+000015A4  207C 00002010            634          MOVEA.L #LOPTICA, A0
+000015AA  5750                     635          SUBQ    #$3, (A0)
+000015AC  6088                     636          BRA     POMAKNILOPTICUY
+000015AE                           637          
+000015AE                           638  DOZVOLJENPOMAKPOZY:
+000015AE  207C 00002012            639          MOVEA.L #LOPTICA+2, A0
+000015B4  5650                     640          ADDQ    #$3, (A0)
+000015B6  4E75                     641          RTS
+000015B8                           642          
+000015B8                           643  DOZVOLJENPOMAKNEGY:
+000015B8  207C 00002012            644          MOVEA.L #LOPTICA+2, A0
+000015BE  5750                     645          SUBQ    #$3,(A0)
+000015C0  4E75                     646          RTS
+000015C2                           647  
+000015C2                           648  *-----------------------------------------------------------------------------------------*
+000015C2                           649  ;podrutina za obradu pritiska tipke - pomice odgovarajucu plocu i ponovno ucrtava ploce
+000015C2                           650  OBRADIULAZ:
+000015C2  103C 0005                651          MOVE.B  #5, D0
+000015C6  4E4F                     652          TRAP    #15
+000015C8                           653                  
+000015C8                           654          ; u D1.B je ASCII kod pritisnute tipke
+000015C8                           655          ; ASCII kodovi koji nam trebaju:
+000015C8                           656          ; Q = $51       9 = $39
+000015C8                           657          ; W = $57       6 = $36
+000015C8                           658          ; A = $41       8 = $38
+000015C8                           659          ; S = $53       5 = $35
+000015C8                           660          
+000015C8                           661          ;za slova su dvije provjere jer malo i veliko slovo imaju drukciji ASCII kod
+000015C8  B23C 0051                662          CMP.B   #$51, D1
+000015CC  6700 005C                663          BEQ     LGOLMANGORE
+000015D0  B23C 0071                664          CMP.B   #$71, D1
+000015D4  6700 0054                665          BEQ     LGOLMANGORE
+000015D8                           666           
+000015D8  B23C 0041                667          CMP.B   #$41, D1
+000015DC  6700 007C                668          BEQ     LGOLMANDOLJE
+000015E0  B23C 0061                669          CMP.B   #$61, D1
+000015E4  6700 0074                670          BEQ     LGOLMANDOLJE
+000015E8                           671          
+000015E8  B23C 0057                672          CMP.B   #$57, D1
+000015EC  6700 009C                673          BEQ     LNAPADACGORE
+000015F0  B23C 0077                674          CMP.B   #$77, D1
+000015F4  6700 0094                675          BEQ     LNAPADACGORE
+000015F8                           676          
+000015F8  B23C 0053                677          CMP.B   #$53, D1
+000015FC  6700 00BC                678          BEQ     LNAPADACDOLJE
+00001600  B23C 0073                679          CMP.B   #$73, D1
+00001604  6700 00B4                680          BEQ     LNAPADACDOLJE
+00001608                           681  
+00001608  B23C 0039                682          CMP.B   #$39, D1
+0000160C  6700 00DC                683          BEQ     DGOLMANGORE
+00001610  B23C 0036                684          CMP.B   #$36, D1
+00001614  6700 0104                685          BEQ     DGOLMANDOLJE
+00001618  B23C 0038                686          CMP.B   #$38, D1
+0000161C  6700 012C                687          BEQ     DNAPADACGORE
+00001620  B23C 0035                688          CMP.B   #$35, D1
+00001624  6700 0154                689          BEQ     DNAPADACDOLJE
+00001628                           690          
+00001628                           691          ; ako smo dosli do ovdje, pritisnuta je *neka* tipka, ali ne ona koja nas zanima
+00001628                           692          ; dakle, izlazimo iz podrutine
+00001628  4E75                     693          RTS
+0000162A                           694          
+0000162A                           695          ;a ako je pritisnuta neka tipka od interesa, odradimo odgovarajuci pomak (3px)
+0000162A                           696          
+0000162A                           697  LGOLMANGORE:
+0000162A  207C 00002000            698          MOVEA.L #GOLMANL, A0
+00001630  0C68 001A 0002           699          CMPI    #26, 2(A0)
+00001636  6300 0172                700          BLS     NEMAPOMAKA
+0000163A  207C 00002000            701          MOVEA.L #GOLMANL, A0
+00001640  4EB8 1276                702          JSR     POMAKGORECISTI
+00001644  207C 00002000            703          MOVEA.L #GOLMANL, A0
+0000164A  5568 0002                704          SUB.W   #2, 2(A0)
+0000164E  207C 00002000            705          MOVEA.L #GOLMANL, A0
+00001654  4EB8 1208                706          JSR     CRTAJJEDNUPLOCU 
+00001658  4E75                     707          RTS
+0000165A                           708          
+0000165A                           709  LGOLMANDOLJE:
+0000165A  207C 00002000            710          MOVEA.L #GOLMANL, A0
+00001660  0C68 018B 0002           711          CMPI    #395, 2(A0)
+00001666  6400 0142                712          BCC     NEMAPOMAKA
+0000166A  207C 00002000            713          MOVEA.L #GOLMANL, A0
+00001670  4EB8 1240                714          JSR     POMAKDOLJECISTI
+00001674  207C 00002000            715          MOVEA.L #GOLMANL, A0
+0000167A  5468 0002                716          ADD.W   #2, 2(A0)
+0000167E  207C 00002000            717          MOVEA.L #GOLMANL, A0
+00001684  4EB8 1208                718          JSR     CRTAJJEDNUPLOCU
+00001688  4E75                     719          RTS
+0000168A                           720          
+0000168A                           721  LNAPADACGORE:
+0000168A  207C 00002004            722          MOVEA.L #NAPADL, A0
+00001690  0C68 0019 0002           723          CMPI    #25, 2(A0)
+00001696  6300 0112                724          BLS     NEMAPOMAKA
+0000169A  207C 00002004            725          MOVEA.L #NAPADL, A0
+000016A0  4EB8 1276                726          JSR     POMAKGORECISTI
+000016A4  207C 00002004            727          MOVEA.L #NAPADL, A0
+000016AA  5568 0002                728          SUB.W   #2, 2(A0)
+000016AE  207C 00002004            729          MOVEA.L #NAPADL, A0
+000016B4  4EB8 1208                730          JSR     CRTAJJEDNUPLOCU
+000016B8  4E75                     731          RTS
+000016BA                           732          
+000016BA                           733  LNAPADACDOLJE:
+000016BA  207C 00002004            734          MOVEA.L #NAPADL, A0
+000016C0  0C68 018B 0002           735          CMPI    #395, 2(A0)
+000016C6  6400 00E2                736          BCC     NEMAPOMAKA
+000016CA  207C 00002004            737          MOVEA.L #NAPADL, A0
+000016D0  4EB8 1240                738          JSR     POMAKDOLJECISTI
+000016D4  207C 00002004            739          MOVEA.L #NAPADL, A0
+000016DA  5468 0002                740          ADD.W   #2, 2(A0) 
+000016DE  207C 00002004            741          MOVEA.L #NAPADL, A0
+000016E4  4EB8 1208                742          JSR     CRTAJJEDNUPLOCU
+000016E8  4E75                     743          RTS     
+000016EA                           744          
+000016EA                           745  DGOLMANGORE:
+000016EA  207C 00002008            746          MOVEA.L #GOLMAND, A0
+000016F0  0C68 0019 0002           747          CMPI    #25, 2(A0)
+000016F6  6300 00B2                748          BLS     NEMAPOMAKA
+000016FA  207C 00002008            749          MOVEA.L #GOLMAND, A0
+00001700  4EB8 1276                750          JSR     POMAKGORECISTI
+00001704  207C 00002008            751          MOVEA.L #GOLMAND, A0
+0000170A  5568 0002                752          SUB.W   #2, 2(A0)
+0000170E  207C 00002008            753          MOVEA.L #GOLMAND, A0
+00001714  4EB8 1208                754          JSR     CRTAJJEDNUPLOCU
+00001718  4E75                     755          RTS
+0000171A                           756  
+0000171A                           757  DGOLMANDOLJE:
+0000171A  207C 00002008            758          MOVEA.L #GOLMAND, A0
+00001720  0C68 018B 0002           759          CMPI    #395, 2(A0)
+00001726  6400 0082                760          BCC     NEMAPOMAKA
+0000172A  207C 00002008            761          MOVEA.L #GOLMAND, A0
+00001730  4EB8 1240                762          JSR     POMAKDOLJECISTI
+00001734  207C 00002008            763          MOVEA.L #GOLMAND, A0
+0000173A  5468 0002                764          ADD.W   #2, 2(A0) 
+0000173E  207C 00002008            765          MOVEA.L #GOLMAND, A0
+00001744  4EB8 1208                766          JSR     CRTAJJEDNUPLOCU
+00001748  4E75                     767          RTS
+0000174A                           768          
+0000174A                           769  DNAPADACGORE:
+0000174A  207C 0000200C            770          MOVEA.L #NAPADD, A0
+00001750  0C68 0019 0002           771          CMPI    #25, 2(A0)
+00001756  6300 0052                772          BLS     NEMAPOMAKA
+0000175A  207C 0000200C            773          MOVEA.L #NAPADD, A0
+00001760  4EB8 1276                774          JSR     POMAKGORECISTI
+00001764  207C 0000200C            775          MOVEA.L #NAPADD, A0
+0000176A  5568 0002                776          SUB.W   #2, 2(A0)
+0000176E  207C 0000200C            777          MOVEA.L #NAPADD, A0
+00001774  4EB8 1208                778          JSR     CRTAJJEDNUPLOCU
+00001778  4E75                     779          RTS
+0000177A                           780          
+0000177A                           781  DNAPADACDOLJE:
+0000177A  207C 0000200C            782          MOVEA.L #NAPADD, A0
+00001780  0C68 018B 0002           783          CMPI    #395, 2(A0)
+00001786  6400 0022                784          BCC     NEMAPOMAKA
+0000178A  207C 0000200C            785          MOVEA.L #NAPADD, A0
+00001790  4EB8 1240                786          JSR     POMAKDOLJECISTI
+00001794  207C 0000200C            787          MOVEA.L #NAPADD, A0
+0000179A  5468 0002                788          ADD.W   #2, 2(A0) 
+0000179E  207C 0000200C            789          MOVEA.L #NAPADD, A0
+000017A4  4EB8 1208                790          JSR     CRTAJJEDNUPLOCU
+000017A8  4E75                     791          RTS
+000017AA                           792          
+000017AA                           793  NEMAPOMAKA:
+000017AA  4E75                     794          RTS
+000017AC                           795          
+000017AC                           796  *---------------------------------------------------------------------------------------------------*                   
+000017AC                           797  ; podrutina za pocetni zaslon
+000017AC                           798  POCETNIZASLON:  
+000017AC                           799          ; namjestanje cursora
+000017AC                           800          ; 10 -> 0A u hex
+000017AC                           801          ; 25 -> 19 u hex
+000017AC  4241                     802          CLR.W   D1
+000017AE  323C 190A                803          MOVE.W  #$190A, D1
+000017B2  103C 000B                804          MOVE.B  #11, D0
+000017B6  4E4F                     805          TRAP    #15
+000017B8                           806          
+000017B8                           807          ; ispis teksta
+000017B8  103C 000E                808          MOVE.B  #14, D0
+000017BC  43F8 202A                809          LEA     POZ, A1
+000017C0  4E4F                     810          TRAP    #15
+000017C2                           811          
+000017C2                           812          ;i sad ponovno
+000017C2  4241                     813          CLR.W   D1
+000017C4  323C 170C                814          MOVE.W  #$170C, D1
+000017C8  103C 000B                815          MOVE.B  #11, D0
+000017CC  4E4F                     816          TRAP    #15
+000017CE  103C 000E                817          MOVE.B  #14, D0
+000017D2  43F8 2044                818          LEA     UPUTE1, A1
+000017D6  4E4F                     819          TRAP    #15
+000017D8                           820          
+000017D8  4241                     821          CLR.W   D1
+000017DA  323C 0E0D                822          MOVE.W  #$0E0D, D1
+000017DE  103C 000B                823          MOVE.B  #11, D0
+000017E2  4E4F                     824          TRAP    #15
+000017E4  103C 000E                825          MOVE.B  #14, D0
+000017E8  43F8 2064                826          LEA     UPUTE2, A1
+000017EC  4E4F                     827          TRAP    #15
+000017EE                           828          
+000017EE  4241                     829          CLR.W   D1
+000017F0  323C 0E0E                830          MOVE.W  #$0E0E, D1
+000017F4  103C 000B                831          MOVE.B  #11, D0
+000017F8  4E4F                     832          TRAP    #15
+000017FA  103C 000E                833          MOVE.B  #14, D0
+000017FE  43F8 2099                834          LEA     UPUTE3, A1
+00001802  4E4F                     835          TRAP    #15
+00001804                           836  
+00001804  4241                     837          CLR.W   D1
+00001806  323C 0E10                838          MOVE.W  #$0E10, D1
+0000180A  103C 000B                839          MOVE.B  #11, D0
+0000180E  4E4F                     840          TRAP    #15
+00001810  103C 000E                841          MOVE.B  #14, D0
+00001814  43F8 20C9                842          LEA     KRENI, A1
+00001818  4E4F                     843          TRAP    #15
+0000181A                           844  
+0000181A  4EB8 10F4                845          JSR     POZADINA
+0000181E  4EB9 000018AC            846          JSR     SPACELOOP
+00001824                           847                  
+00001824                           848          ; ako je tipka pritisnuta, moramo izbrisati tekst
+00001824                           849          ; prvo moramo postaviti boju na CHARCOAL - #36454F
+00001824  223C 004F4536            850          MOVE.L  #$004F4536, D1
+0000182A  103C 0015                851          MOVE.B  #21, D0
+0000182E  4E4F                     852          TRAP    #15
+00001830                           853          
+00001830  223C 004F4536            854          MOVE.L  #$004F4536, D1
+00001836  103C 0051                855          MOVE.B  #81, D0
+0000183A  4E4F                     856          TRAP    #15
+0000183C                           857  
+0000183C                           858          
+0000183C  4241                     859          CLR.W   D1
+0000183E  323C 190A                860          MOVE.W  #$190A, D1
+00001842  103C 000B                861          MOVE.B  #11, D0
+00001846  4E4F                     862          TRAP    #15
+00001848  103C 000E                863          MOVE.B  #14, D0
+0000184C  43F8 20FE                864          LEA     BRISI, A1
+00001850  4E4F                     865          TRAP    #15
+00001852                           866          
+00001852  4241                     867          CLR.W   D1
+00001854  323C 170C                868          MOVE.W  #$170C, D1
+00001858  103C 000B                869          MOVE.B  #11, D0
+0000185C  4E4F                     870          TRAP    #15
+0000185E  103C 000E                871          MOVE.B  #14, D0
+00001862  43F8 20FE                872          LEA     BRISI, A1
+00001866  4E4F                     873          TRAP    #15
+00001868                           874          
+00001868  4241                     875          CLR.W   D1
+0000186A  323C 0E0D                876          MOVE.W  #$0E0D, D1
+0000186E  103C 000B                877          MOVE.B  #11, D0
+00001872  4E4F                     878          TRAP    #15
+00001874  103C 000E                879          MOVE.B  #14, D0
+00001878  43F8 20FE                880          LEA     BRISI, A1
+0000187C  4E4F                     881          TRAP    #15
+0000187E                           882          
+0000187E  4241                     883          CLR.W   D1
+00001880  323C 0E0E                884          MOVE.W  #$0E0E, D1
+00001884  103C 000B                885          MOVE.B  #11, D0
+00001888  4E4F                     886          TRAP    #15
+0000188A  103C 000E                887          MOVE.B  #14, D0
+0000188E  43F8 20FE                888          LEA     BRISI, A1
+00001892  4E4F                     889          TRAP    #15
+00001894                           890  
+00001894  4241                     891          CLR.W   D1
+00001896  323C 0E10                892          MOVE.W  #$0E10, D1
+0000189A  103C 000B                893          MOVE.B  #11, D0
+0000189E  4E4F                     894          TRAP    #15
+000018A0  103C 000E                895          MOVE.B  #14, D0
+000018A4  43F8 20FE                896          LEA     BRISI, A1
+000018A8  4E4F                     897          TRAP    #15
+000018AA                           898  
+000018AA                           899  
+000018AA  4E75                     900          RTS
+000018AC                           901          
+000018AC                           902  *-----------------------------------------------------------------------------------------*
+000018AC                           903  ; za cekanje dok se ne pritisne spacebar
+000018AC                           904  SPACELOOP:      
+000018AC  4201                     905          CLR.B   D1
+000018AE                           906          ; provjera je li pritisnuta NEKA tipka
+000018AE  103C 0007                907          MOVE.B  #7, D0
+000018B2  4E4F                     908          TRAP    #15
+000018B4  4A01                     909          TST.B   D1
+000018B6                           910          ; ako je tipka pritisnuta, obradimo
+000018B6  103C 0005                911          MOVE.B  #5, D0
+000018BA  4E4F                     912          TRAP    #15
+000018BC  B23C 0020                913          CMP.B   #32, D1
+000018C0  66EA                     914          BNE     SPACELOOP
+000018C2  4E75                     915          RTS
+000018C4                           916          
+000018C4                           917  *-----------------------------------------------------------------------------------------*
+000018C4                           918  ; ispis scorea
+000018C4                           919  SCOREISPIS:
+000018C4                           920          ; olovka za ispunu, charcoal boje #36454F
+000018C4  223C 004F4536            921          MOVE.L  #$004F4536, D1
+000018CA  103C 0051                922          MOVE.B  #81, D0
+000018CE  4E4F                     923          TRAP    #15
+000018D0                           924          
+000018D0                           925          ; ispuna
+000018D0  323C 000F                926          MOVE.W  #15, D1
+000018D4  343C 000F                927          MOVE.W  #15, D2
+000018D8  103C 0059                928          MOVE.B  #89, D0
+000018DC  4E4F                     929          TRAP    #15
+000018DE                           930          
+000018DE                           931          ; boja i stil fonta
+000018DE  223C 00FFFFFF            932          MOVE.L  #$00FFFFFF, D1
+000018E4  7400                     933          MOVE.L  #0, D2
+000018E6  103C 0015                934          MOVE.B  #21, D0
+000018EA  4E4F                     935          TRAP    #15
+000018EC                           936                          
+000018EC                           937          ; namjestanje cursora
+000018EC  4241                     938          CLR.W   D1
+000018EE  323C 1F01                939          MOVE.W  #$1F01, D1
+000018F2  103C 000B                940          MOVE.B  #11, D0
+000018F6  4E4F                     941          TRAP    #15
+000018F8                           942          
+000018F8                           943          ; ispis lijevog scorea
+000018F8  103C 000E                944          MOVE.B  #14, D0
+000018FC  43F8 2020                945          LEA     SCOREL, A1
+00001900  4E4F                     946          TRAP    #15
+00001902                           947          
+00001902                           948          ; namjestanje cursora, opet
+00001902  4241                     949          CLR.W   D1
+00001904  323C 2D01                950          MOVE.W  #$2D01, D1
+00001908  103C 000B                951          MOVE.B  #11, D0
+0000190C  4E4F                     952          TRAP    #15
+0000190E                           953          
+0000190E                           954          ; ispis desnog scorea
+0000190E  103C 000E                955          MOVE.B  #14, D0
+00001912  43F8 2025                956          LEA     SCORED, A1
+00001916  4E4F                     957          TRAP    #15
+00001918                           958          
+00001918  4E75                     959          RTS
+0000191A                           960  
+0000191A                           961  
+0000191A                           962  *----------------------------------------------------------------------------------------*
+0000191A                           963  OBRADIGOLDESNI:
+0000191A  207C 00002020            964          MOVEA.L #SCOREL, A0
+00001920  5688                     965          ADDQ.L  #3, A0
+00001922  1010                     966          MOVE.B  (A0), D0
+00001924  0400 0030                967          SUB.B   #$30, D0 ; ascii -> bin
+00001928  5200                     968          ADD.B   #1, D0
+0000192A  B03C 0005                969          CMP.B   #5, D0
+0000192E  6600 002E                970          BNE     SPREMI
+00001932  31FC 0001 201E           971          MOVE.W  #1, POBJEDA     ; 2 u pobjeda znaci da je pobijedio lijevi
+00001938  6000 0074                972          BRA     ZAVRSNIZASLON
+0000193C                           973  
+0000193C                           974  OBRADIGOLLIJEVI:
+0000193C  207C 00002025            975          MOVEA.L #SCORED, A0
+00001942  5688                     976          ADDQ.L  #3, A0  ; pomicemo se do broja
+00001944  1010                     977          MOVE.B  (A0), D0
+00001946  0400 0030                978          SUB.B   #$30, D0 ; ascii -> bin
+0000194A  5200                     979          ADD.B   #1, D0
+0000194C  B03C 0005                980          CMP.B   #5, D0
+00001950  6600 000C                981          BNE     SPREMI
+00001954  31FC 0002 201E           982          MOVE.W  #2, POBJEDA     ;2 u pobjeda znaci da je pobijedio desni
+0000195A  6000 0052                983          BRA     ZAVRSNIZASLON
+0000195E                           984  
+0000195E                           985  SPREMI:
+0000195E  0600 0030                986          ADD.B   #$30, D0
+00001962  1080                     987          MOVE.B  D0, (A0)
+00001964                           988          
+00001964                           989          ; ubrzaj lopticu
+00001964  3038 2016                990          MOVE.W  BRZINA, D0
+00001968  0C00 0001                991          CMPI.B  #1, D0
+0000196C                           992          ; ako je vec 1, nemas sto ubrzavati
+0000196C  6700 0006                993          BEQ     NACENTAR
+00001970  5378 2016                994          SUB.W   #1, BRZINA 
+00001974                           995  
+00001974                           996  NACENTAR:
+00001974                           997          ; lopticu na centar
+00001974  207C 00002010            998          MOVEA.L #LOPTICA, A0
+0000197A  30FC 0140                999          MOVE.W  #320, (A0)+
+0000197E  30BC 00F0               1000          MOVE.W  #240, (A0)
+00001982                          1001          ; stavi smjer
+00001982  4EB8 135C               1002          JSR     STAVISMJERLOPTICE
+00001986                          1003          
+00001986  6000 F724               1004          BRA     INFPETLJA
+0000198A                          1005          
+0000198A                          1006  *-----------------------------------------------------------------------------------------
+0000198A                          1007  CISTIZASLON:
+0000198A                          1008          ; boja 
+0000198A  223C 004F4536           1009          MOVE.L  #$004F4536, D1
+00001990  103C 0051               1010          MOVE.B  #81, D0
+00001994  4E4F                    1011          TRAP    #15
+00001996                          1012                  
+00001996                          1013          ; cisti zaslon
+00001996  323C 0000               1014          MOVE.W  #0, D1
+0000199A  343C 0000               1015          MOVE.W  #0, D2
+0000199E  363C 0280               1016          MOVE.W  #640, D3
+000019A2  383C 01E0               1017          MOVE.W  #480, D4
+000019A6                          1018  
+000019A6  103C 0057               1019          MOVE.B  #87, D0
+000019AA  4E4F                    1020          TRAP    #15
+000019AC  4E75                    1021          RTS
+000019AE                          1022  
+000019AE                          1023  ZAVRSNIZASLON:
+000019AE  4EB8 198A               1024          JSR     CISTIZASLON
+000019B2  4EB8 10F4               1025          JSR     POZADINA
+000019B6                          1026          
+000019B6                          1027          ; olovka za ispunu, charcoal boje #36454F
+000019B6  223C 004F4536           1028          MOVE.L  #$004F4536, D1
+000019BC  103C 0051               1029          MOVE.B  #81, D0
+000019C0  4E4F                    1030          TRAP    #15
+000019C2                          1031          
+000019C2                          1032          ; ispuna
+000019C2  323C 000F               1033          MOVE.W  #15, D1
+000019C6  343C 000F               1034          MOVE.W  #15, D2
+000019CA  103C 0059               1035          MOVE.B  #89, D0
+000019CE  4E4F                    1036          TRAP    #15
+000019D0                          1037                  
+000019D0                          1038          ; boja teksta
+000019D0  223C 00FFFFFF           1039          MOVE.L  #$00FFFFFF, D1
+000019D6  7400                    1040          MOVE.L  #0, D2
+000019D8  11C0 0015               1041          MOVE.B  D0, 21
+000019DC  4E4F                    1042          TRAP    #15
+000019DE                          1043          
+000019DE                          1044          ; namjestanje cursora
+000019DE  4241                    1045          CLR.W   D1
+000019E0  323C 190A               1046          MOVE.W  #$190A, D1
+000019E4  103C 000B               1047          MOVE.B  #11, D0
+000019E8  4E4F                    1048          TRAP    #15
+000019EA                          1049          
+000019EA  0C78 0001 201E          1050          CMPI    #1, POBJEDA
+000019F0  6600 0010               1051          BNE     POBJEDADESNI
+000019F4                          1052          
+000019F4                          1053  POBJEDALIJEVI:
+000019F4                          1054          ; ispis teksta
+000019F4  103C 000E               1055          MOVE.B  #14, D0
+000019F8  43F8 2134               1056          LEA     POBJEDNIKL, A1
+000019FC  4E4F                    1057          TRAP    #15
+000019FE  6000 0010               1058          BRA     SLJEDECIKOMADTEKSTA
+00001A02                          1059                  
+00001A02                          1060  POBJEDADESNI:
+00001A02                          1061          ; ispis teksta
+00001A02  103C 000E               1062          MOVE.B  #14, D0
+00001A06  43F8 214F               1063          LEA     POBJEDNIKD, A1
+00001A0A  4E4F                    1064          TRAP    #15
+00001A0C  6000 0002               1065          BRA     SLJEDECIKOMADTEKSTA
+00001A10                          1066  
+00001A10                          1067  SLJEDECIKOMADTEKSTA:
+00001A10  4241                    1068          CLR.W   D1
+00001A12  323C 100C               1069          MOVE.W  #$100C, D1
+00001A16  103C 000B               1070          MOVE.B  #11, D0
+00001A1A  4E4F                    1071          TRAP    #15
+00001A1C  103C 000E               1072          MOVE.B  #14, D0
+00001A20  43F8 2169               1073          LEA     PONOVNO, A1
+00001A24  4E4F                    1074          TRAP    #15
+00001A26                          1075          
+00001A26                          1076          
+00001A26                          1077  ; i sad cekamo pritisak spacebara. ako do njega dode, igra se ponovno pokrece
+00001A26  4EB8 18AC               1078          JSR     SPACELOOP
+00001A2A  4EB8 198A               1079          JSR     CISTIZASLON
+00001A2E                          1080          
+00001A2E                          1081          ; ocisti score
+00001A2E  207C 00002020           1082          MOVEA.L #SCOREL, A0
+00001A34  5688                    1083          ADDQ.L  #3, A0
+00001A36  10BC 0030               1084          MOVE.B  #'0', (A0)
+00001A3A                          1085          
+00001A3A  207C 00002025           1086          MOVEA.L #SCORED, A0
+00001A40  5688                    1087          ADDQ.L  #3, A0
+00001A42  10BC 0030               1088          MOVE.B  #'0', (A0)
+00001A46                          1089          
+00001A46  6000 F5B8               1090          BRA     START
+00001A4A                          1091  
+00001A4A                          1092          
+00001A4A  6000 F6A2               1093          BRA     KRAJ    
+00001A4E                          1094          
+00001A4E                          1095          
+00001A4E                          1096          
+00001A4E                          1097          END     START           
+
+No errors detected
+No warnings generated
+
+
+SYMBOL TABLE INFORMATION
+Symbol-name         Value
+-------------------------
+BEZPROMJENE         1324
+BOJA                2018
+BRISI               20FE
+BRISILOPTICU        12B2
+BRZINA              2016
+CISTIZASLON         198A
+CRTAJCENTAR         11BE
+CRTAJJEDNUPLOCU     1208
+CRTAJLOPTICU        1308
+CRTAJOBRUB          1116
+DALJE               10DA
+DATA                2000
+DESNIGOLPROVJERA    13D6
+DGOLMANDOLJE        171A
+DGOLMANGORE         16EA
+DGOLMANX            14BA
+DGOLMANY            14DC
+DNAPADACDOLJE       177A
+DNAPADACGORE        174A
+DNAPADX             1476
+DNAPADY             1498
+DOZVOLJENPOMAKNEGX  15A4
+DOZVOLJENPOMAKNEGY  15B8
+DOZVOLJENPOMAKPOZX  159A
+DOZVOLJENPOMAKPOZY  15AE
+DRUGA               1388
+GOLMAND             2008
+GOLMANL             2000
+GOLPRVAPROVJERA     13AE
+INFPETLJA           10AC
+KRAJ                10EE
+KRAJBRISANJA        1306
+KRENI               20C9
+LGOLMANDOLJE        165A
+LGOLMANGORE         162A
+LGOLMANX            13EE
+LGOLMANY            1410
+LIJEVIGOLPROVJERA   13C4
+LINIJA              11F4
+LNAPADACDOLJE       16BA
+LNAPADACGORE        168A
+LNAPADX             1432
+LNAPADY             1454
+LOPTICA             2010
+N                   201C
+NACENTAR            1974
+NAPADD              200C
+NAPADL              2004
+NEGX                1524
+NEGY                1554
+NEMAPOMAKA          17AA
+NEODUZIMAJ          1506
+NULAX               1384
+NULAY               13A8
+OBRADIGOLDESNI      191A
+OBRADIGOLLIJEVI     193C
+OBRADIULAZ          15C2
+POBJEDA             201E
+POBJEDADESNI        1A02
+POBJEDALIJEVI       19F4
+POBJEDNIKD          214F
+POBJEDNIKL          2134
+POCETNIZASLON       17AC
+POMAKDOLJECISTI     1240
+POMAKGORECISTI      1276
+POMAKNILOPTICU      13AE
+POMAKNILOPTICUX     14FE
+POMAKNILOPTICUY     1536
+PONOVNO             2169
+POZ                 202A
+POZADINA            10F4
+POZX                1512
+POZY                1542
+PROGRAM             1000
+PROMJENAOBASMJERA   157A
+PROMJENAX           1566
+PROMJENAY           1570
+PROVJERASUDARA      13E8
+SCORED              2025
+SCOREISPIS          18C4
+SCOREL              2020
+SLJEDECIKOMADTEKSTA  1A10
+SMJER               2014
+SPACELOOP           18AC
+SPREMI              195E
+START               1000
+STAVISMJERLOPTICE   135C
+UPUTE1              2044
+UPUTE2              2064
+UPUTE3              2099
+ZAVRSNIZASLON       19AE
